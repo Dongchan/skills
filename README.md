@@ -15,7 +15,7 @@ Spring Boot 프로젝트를 빠르게 생성하는 skill입니다.
 
 **사용 예시:**
 ```
-/spring-boot-init
+/spring-boot-init 스킬을 이용해서 @API_SPEC.md 문서를 토대로 api 서버 개발해줘
 ```
 
 ## 설치 방법
