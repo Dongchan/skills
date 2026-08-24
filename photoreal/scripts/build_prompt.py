@@ -307,11 +307,40 @@ L4_EN = [
 HANDS_KO = "손이 화면에 보인다면 손가락 개수와 관절, 쥐는 방식이 현실적일 것"
 HANDS_EN = "if hands are visible, correct finger count, plausible joints, a realistic grip"
 
-L5_KO = ("예쁘되 얼굴과 피부를 완벽하게 다듬지 말 것. 청결감과 친근함은 남기고, "
-         "완벽함보다 실존감·생활감·자연스러운 불완전함을 최우선으로")
-L5_EN = ("keep her genuinely attractive but do not perfect the face or skin; stay clean and "
-         "approachable, and prioritize presence, lived-in texture, and natural imperfection "
-         "over perfection")
+# L5 는 양쪽으로 실패한다 — 빼면 초라해지고 세게 쓰면 배우 얼굴이 된다.
+# plain 이 기본값. 인물이 주인공인 컷에만 attractive, 노인·다큐·사물에는 none.
+L5_KO = {
+    "plain": ("호감 가는 인상은 유지하되 얼굴과 피부를 완벽하게 다듬지 말 것. "
+              "완벽함보다 실존감·생활감·자연스러운 불완전함을 최우선으로"),
+    "attractive": ("매력적이되 얼굴과 피부를 완벽하게 다듬지 말 것. 청결감과 친근함은 남기고, "
+                   "완벽함보다 실존감·생활감·자연스러운 불완전함을 최우선으로"),
+    "none": "완벽함보다 실존감·생활감·자연스러운 불완전함을 최우선으로",
+}
+L5_EN = {
+    "plain": ("keep the subject likeable but do not perfect the face or skin; prioritize presence, "
+              "lived-in texture, and natural imperfection over perfection"),
+    "attractive": ("keep the subject genuinely attractive but do not perfect the face or skin; stay "
+                   "clean and approachable, and prioritize presence, lived-in texture, and natural "
+                   "imperfection over perfection"),
+    "none": "prioritize presence, lived-in texture, and natural imperfection over perfection",
+}
+
+# L4 의 피부·주름 지시는 나이를 위로 민다. 실측에서 20대 중반→30대, 30대 후반→40대로 반복 관찰.
+AGE_LOCK_KO = "지정한 나이대로 보일 것 — 피부 질감 지시가 실제 나이보다 들어 보이게 만들지 않도록"
+AGE_LOCK_EN = ("read as the stated age — the skin-texture notes must not push the subject older "
+               "than specified")
+
+# 여러 명일 때는 시선을 사람 수만큼 나눠야 한다. 하나만 주면 전원이 같은 곳을 본다.
+GROUP_KO = ("등장인물의 시선과 자세가 제각각이고 아무도 카메라를 보지 않음. "
+            "뒤쪽 인물의 얼굴과 손도 또렷하게 그릴 것. "
+            "옷차림의 색과 차림새에 편차가 있고 앉은 자세도 각자 다름")
+GROUP_EN = ("each person looking somewhere different and nobody at the camera; "
+            "faces and hands of the people further back rendered clearly; "
+            "clothing colors and postures varying from person to person")
+
+# 손은 해부학과 동작 논리가 별개다. 개수가 맞아도 동작이 틀리면 실패한다.
+HANDS_ACTION_KO = "손이 무언가를 하고 있다면 그 동작을 실제로 할 수 있는 손 모양일 것"
+HANDS_ACTION_EN = "if the hands are doing something, the grip must be one that actually performs it"
 
 SELFIE_KO = ("팔 길이 거리에서 직접 든 셀카 — 얼굴이 가깝고 화면 위쪽에 치우치며 광각 왜곡으로 "
              "코가 조금 크고 가장자리가 늘어남. 한쪽 어깨가 뻗은 팔 쪽으로 기울고, 렌즈가 아니라 "
@@ -322,7 +351,8 @@ SELFIE_EN = ("a selfie held at arm's length — the face close and high in the f
              "slightly off")
 
 
-def build(subject, scene_key, situation, idx, level, shot, lang):
+def build(subject, scene_key, situation, idx, level, shot, lang,
+          group=0, charm="plain", age_lock=False):
     scene = SCENES.get(scene_key)
     ko, en = [], []
 
@@ -344,6 +374,10 @@ def build(subject, scene_key, situation, idx, level, shot, lang):
     ko.append(L1_KO)
     en.append(L1_EN)
 
+    if group >= 2:
+        ko.append(GROUP_KO)
+        en.append(GROUP_EN)
+
     if shot == "selfie":
         ko.append(SELFIE_KO)
         en.append(SELFIE_EN)
@@ -361,8 +395,9 @@ def build(subject, scene_key, situation, idx, level, shot, lang):
         if shot != "selfie":
             ko.append(FRAMING_KO[idx % len(FRAMING_KO)])
             en.append(FRAMING_EN[idx % len(FRAMING_EN)])
-        ko.append(GAZE_KO[idx % len(GAZE_KO)])
-        en.append(GAZE_EN[idx % len(GAZE_EN)])
+        if group < 2:  # 그룹은 GROUP_KO 가 시선을 이미 분배함
+            ko.append(GAZE_KO[idx % len(GAZE_KO)])
+            en.append(GAZE_EN[idx % len(GAZE_EN)])
 
     # L4 해부학
     if level == "full":
@@ -372,10 +407,16 @@ def build(subject, scene_key, situation, idx, level, shot, lang):
         en.append(ASYM_EN[idx % len(ASYM_EN)])
         ko.append(HANDS_KO)
         en.append(HANDS_EN)
+        ko.append(HANDS_ACTION_KO)
+        en.append(HANDS_ACTION_EN)
 
-    # L5 미의 상한선 — 항상 마지막
-    ko.append(L5_KO)
-    en.append(L5_EN)
+    if age_lock:
+        ko.append(AGE_LOCK_KO)
+        en.append(AGE_LOCK_EN)
+
+    # L5 미의 상한선 — 항상 마지막. none 이어도 실존감 문장은 남긴다
+    ko.append(L5_KO[charm])
+    en.append(L5_EN[charm])
 
     out = {}
     if lang in ("ko", "both"):
@@ -389,10 +430,18 @@ def main():
     p = argparse.ArgumentParser(description="실사 사진 프롬프트 조립기")
     p.add_argument("--subject", required=True, help='예: "20대 후반 한국인 여성"')
     p.add_argument("--scene", default="cafe", choices=sorted(SCENES) + ["custom"])
-    p.add_argument("--situation", default="", help="--scene custom 일 때 상황을 직접 서술")
+    p.add_argument("--situation", action="append", default=[],
+                   help="--scene custom 일 때 상황을 직접 서술. 반복하면 변형마다 돌아가며 쓴다")
     p.add_argument("--n", type=int, default=1, help="변형 개수")
     p.add_argument("--level", default="standard", choices=["light", "standard", "full"])
     p.add_argument("--shot", default="other", choices=["other", "selfie"])
+    p.add_argument("--group", type=int, default=0, metavar="N",
+                   help="N명이 등장하는 컷. 시선 분배·뒤쪽 인물·옷차림 편차를 넣는다")
+    p.add_argument("--charm", default="plain", choices=["plain", "attractive", "none"],
+                   help="L5 강도. 세게 쓰면 배우 얼굴로 돌아간다")
+    p.add_argument("--age-lock", dest="age_lock", action="store_true", default=None,
+                   help="나이 고정 문장 추가 (--level full 에서 기본 켜짐)")
+    p.add_argument("--no-age-lock", dest="age_lock", action="store_false")
     p.add_argument("--lang", default="ko", choices=["ko", "en", "both"])
     p.add_argument("--emit-batch", metavar="DIR",
                    help="codex-image 배치 스크립트 명령줄까지 출력")
@@ -402,9 +451,20 @@ def main():
     if a.scene == "custom" and not a.situation:
         p.error("--scene custom 을 쓰면 --situation 이 필요합니다")
 
+    # L4 의 피부 지시가 나이를 밀어 올리므로 full 에서는 기본으로 잠근다
+    age_lock = a.age_lock if a.age_lock is not None else (a.level == "full")
+
+    def situation_for(i):
+        return a.situation[i % len(a.situation)] if a.situation else ""
+
     prompts = [build(a.subject, a.scene if a.scene != "custom" else None,
-                     a.situation, i, a.level, a.shot, a.lang)
+                     situation_for(i), i, a.level, a.shot, a.lang,
+                     group=a.group, charm=a.charm, age_lock=age_lock)
                for i in range(a.n)]
+
+    if a.scene == "custom" and 1 < a.n and len(a.situation) == 1:
+        print("# 참고: --situation 이 하나뿐이라 변형이 조명·구도로만 갈립니다.", file=sys.stderr)
+        print("#      --situation 을 여러 번 넘기면 상황 자체가 달라집니다.", file=sys.stderr)
 
     for i, pr in enumerate(prompts, 1):
         print(f"--- {i} ---")
